@@ -1,0 +1,79 @@
+openapi: 3.1.0
+info:
+  title: RetailNext Analytics MCP
+  description: >
+    Merchandising analytics API for RetailNext. Returns product performance data
+    including sales trends, sell-through rates, stock risk, and reorder recommendations.
+  version: 1.0.0
+servers:
+  - url: https://YOUR_PUBLIC_URL_HERE
+    description: RetailNext MCP Server
+paths:
+  /tools/get_product_performance:
+    post:
+      operationId: getProductPerformance
+      summary: Get product performance analytics
+      description: >
+        Returns 60-day sales trend, store-level sell-through, inventory risk levels,
+        and recommended reorder actions for a given product SKU.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sku:
+                  type: string
+                  description: Product SKU or name (e.g. "navy-blazer-slim")
+                  example: navy-blazer-slim
+                days:
+                  type: number
+                  description: Lookback window in days (default 60)
+                  example: 60
+              required:
+                - sku
+      responses:
+        '200':
+          description: Product performance data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sku:
+                    type: string
+                  period_days:
+                    type: number
+                  summary:
+                    type: object
+                    properties:
+                      total_units_sold:
+                        type: number
+                      avg_daily_units:
+                        type: number
+                      peak_day:
+                        type: string
+                      peak_day_units:
+                        type: number
+                      total_stores_analyzed:
+                        type: number
+                      stores_at_risk:
+                        type: number
+                  sales_trend:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date:
+                          type: string
+                        units:
+                          type: number
+                  store_performance:
+                    type: array
+                    items:
+                      type: object
+                  reorder_actions:
+                    type: array
+                    items:
+                      type: object

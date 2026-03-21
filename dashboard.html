@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RetailNext · Navy Blazer Performance Report</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg:        #0d0f14;
+    --surface:   #13161d;
+    --surface2:  #1a1e28;
+    --border:    #252a38;
+    --navy:      #1e3a5f;
+    --accent:    #3b82f6;
+    --accent2:   #6ee7b7;
+    --warn:      #f59e0b;
+    --danger:    #ef4444;
+    --text:      #e8eaf0;
+    --muted:     #6b7280;
+    --pill-ok:   #064e3b;
+    --pill-ok-t: #6ee7b7;
+    --pill-w:    #451a03;
+    --pill-w-t:  #fbbf24;
+    --pill-d:    #450a0a;
+    --pill-d-t:  #f87171;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+  }
+  .header-left { display: flex; align-items: center; gap: 20px; }
+  .logo {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 600; font-size: 15px; letter-spacing: -.3px;
+  }
+  .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .breadcrumb { font-size: 13px; color: var(--muted); }
+  .breadcrumb span { color: var(--text); }
+  .header-right { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--muted); }
+  .badge-live {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(59,130,246,.12); border: 1px solid rgba(59,130,246,.3);
+    color: var(--accent); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  }
+  .badge-live::before {
+    content:''; width:6px; height:6px; border-radius:50%; background:var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* ── Layout ── */
+  .page { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
+
+  /* ── Report title bar ── */
+  .report-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .report-title { font-size: 22px; font-weight: 600; letter-spacing: -.4px; margin-bottom: 4px; }
+  .report-sub { font-size: 13px; color: var(--muted); }
+  .report-meta { display: flex; gap: 8px; }
+  .chip {
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 5px 12px; border-radius: 6px; font-size: 12px; color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ── KPI row ── */
+  .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
+  .kpi {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px 20px;
+    transition: border-color .2s;
+  }
+  .kpi:hover { border-color: var(--accent); }
+  .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
+  .kpi-value { font-size: 28px; font-weight: 600; letter-spacing: -.5px; line-height: 1; }
+  .kpi-value.danger { color: var(--danger); }
+  .kpi-value.warn   { color: var(--warn); }
+  .kpi-delta { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .kpi-delta.up   { color: var(--accent2); }
+  .kpi-delta.down { color: var(--danger); }
+
+  /* ── Charts row ── */
+  .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px 24px;
+  }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .card-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+  .card-action { font-size: 12px; color: var(--accent); cursor: pointer; }
+
+  /* ── Store table ── */
+  .table-card { margin-bottom: 24px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; padding: 0 14px 12px;
+    font-size: 11px; text-transform: uppercase; letter-spacing: .07em;
+    color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid rgba(37,42,56,.6); transition: background .15s; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody td { padding: 13px 14px; }
+  td.num { font-family: 'DM Mono', monospace; font-size: 12px; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  }
+  .pill.healthy  { background: var(--pill-ok); color: var(--pill-ok-t); }
+  .pill.watch    { background: var(--pill-w);  color: var(--pill-w-t);  }
+  .pill.critical { background: var(--pill-d);  color: var(--pill-d-t);  }
+  .pill::before { content:'●'; font-size:7px; }
+
+  /* ── Sell-through bar ── */
+  .st-bar-bg { background: var(--border); border-radius: 4px; height: 6px; width: 100px; }
+  .st-bar-fill { height: 6px; border-radius: 4px; transition: width .4s; }
+
+  /* ── Reorder actions ── */
+  .actions-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .action-card {
+    border-radius: 10px; padding: 18px 20px;
+    border: 1px solid;
+  }
+  .action-card.critical { background: rgba(239,68,68,.06); border-color: rgba(239,68,68,.25); }
+  .action-card.watch    { background: rgba(245,158,11,.06); border-color: rgba(245,158,11,.25); }
+  .action-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .action-sub   { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .action-units { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+  .action-units.critical { color: var(--danger); }
+  .action-units.watch    { color: var(--warn);   }
+  .action-note  { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .action-tag   {
+    display: inline-block; margin-top: 10px;
+    background: rgba(255,255,255,.06); border-radius: 4px;
+    padding: 3px 8px; font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted);
+  }
+
+  /* ── Footer ── */
+  .footer {
+    font-size: 12px; color: var(--muted);
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+    display: flex; justify-content: space-between;
+  }
+
+  canvas { display: block; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo"><div class="logo-dot"></div> RetailNext Analytics</div>
+    <div class="breadcrumb">Merchandising / <span>Product Performance</span></div>
+  </div>
+  <div class="header-right">
+    <div class="badge-live">Live Data</div>
+    <span id="ts"></span>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- Report title -->
+  <div class="report-header">
+    <div>
+      <div class="report-title">Navy Blazer — 60-Day Performance Report</div>
+      <div class="report-sub">SKU: RN-BLZ-NVY-SLIM · All Stores · Jan 21 – Mar 20, 2026</div>
+    </div>
+    <div class="report-meta">
+      <div class="chip">60d window</div>
+      <div class="chip">8 stores</div>
+      <div class="chip">via MCP</div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-row" id="kpi-row"></div>
+
+  <!-- Charts -->
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Unit Sales Trend · 60 Days</div>
+        <div class="card-action">7d avg overlay ↗</div>
+      </div>
+      <canvas id="trendChart" height="180"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Sell-Through by Region</div>
+      </div>
+      <canvas id="donutChart" height="180"></canvas>
+    </div>
+  </div>
+
+  <!-- Store table -->
+  <div class="card table-card">
+    <div class="card-header">
+      <div class="card-title">Store-Level Performance</div>
+      <div class="card-action">Export CSV</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Store</th>
+          <th>Region</th>
+          <th>Units Sold (60d)</th>
+          <th>Sell-Through</th>
+          <th>Current Inv.</th>
+          <th>Daily Velocity</th>
+          <th>Weeks of Supply</th>
+          <th>Stock Risk</th>
+        </tr>
+      </thead>
+      <tbody id="store-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Reorder actions -->
+  <div class="card-title" style="margin-bottom:16px;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#6b7280">
+    ⚡ Recommended Reorder Actions
+  </div>
+  <div class="actions-row" id="actions-row"></div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Generated by RetailNext MCP · Powered by ChatGPT</span>
+    <span id="footer-ts"></span>
+  </div>
+
+</div>
+
+<script>
+// ─── Embedded mock data (matches MCP server output) ─────────────────────────
+// In production this would be fetched from the GPT tool call result
+
+function rnd(lo, hi) { return Math.floor(Math.random() * (hi - lo + 1)) + lo; }
+
+function buildTrend() {
+  const today = new Date('2026-03-20');
+  const pts = [];
+  let base = 8;
+  for (let i = 59; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dow = d.getDay();
+    const weekend = dow === 0 || dow === 6 ? 1.4 : 1;
+    const trend = 1 + (59 - i) * 0.004;
+    const n = +(base * weekend * trend * (0.8 + Math.random() * 0.4)).toFixed(0);
+    pts.push({ date: d.toISOString().split('T')[0], units: Math.max(2, n) });
+    base += (Math.random() - 0.48) * 0.3;
+  }
+  return pts;
+}
+
+const STORES = [
+  { id:'NYC-001', name:'Manhattan Flagship', region:'Northeast', inventory: rnd(15,40),  sold: rnd(140,200) },
+  { id:'LA-001',  name:'Beverly Hills',      region:'West',      inventory: rnd(40,90),  sold: rnd(80,130)  },
+  { id:'CHI-001', name:'Michigan Ave',        region:'Midwest',   inventory: rnd(30,80),  sold: rnd(90,140)  },
+  { id:'MIA-001', name:'Brickell City Centre',region:'South',     inventory: rnd(8,25),   sold: rnd(130,180) },
+  { id:'SEA-001', name:'Pike Place',          region:'West',      inventory: rnd(50,110), sold: rnd(70,110)  },
+  { id:'BOS-001', name:'Newbury Street',      region:'Northeast', inventory: rnd(20,55),  sold: rnd(100,150) },
+  { id:'ATL-001', name:'Buckhead',            region:'South',     inventory: rnd(12,30),  sold: rnd(120,165) },
+  { id:'DAL-001', name:'NorthPark Center',    region:'South',     inventory: rnd(35,75),  sold: rnd(85,125)  },
+].map(s => {
+  const allocated = s.inventory + s.sold;
+  const st = Math.round(s.sold / allocated * 100);
+  const vel = +(s.sold / 60).toFixed(1);
+  const wos = +(s.inventory / (vel * 7)).toFixed(1);
+  return { ...s, sell_through: st, velocity: vel, wos,
+           risk: wos < 1.5 ? 'critical' : wos < 3 ? 'watch' : 'healthy' };
+});
+
+const TREND = buildTrend();
+const totalSold = TREND.reduce((a,b) => a + b.units, 0);
+const avgDaily  = +(totalSold / 60).toFixed(1);
+const peakDay   = TREND.reduce((a,b) => b.units > a.units ? b : a);
+const atRisk    = STORES.filter(s => s.risk !== 'healthy').length;
+const avgST     = Math.round(STORES.reduce((a,s) => a + s.sell_through, 0) / STORES.length);
+
+// ─── Timestamp ───────────────────────────────────────────────────────────────
+const now = new Date();
+const fmt  = d => d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+document.getElementById('ts').textContent = fmt(now);
+document.getElementById('footer-ts').textContent = 'Last refreshed: ' + fmt(now);
+
+// ─── KPIs ────────────────────────────────────────────────────────────────────
+const kpis = [
+  { label:'Total Units Sold', value: totalSold.toLocaleString(), delta:'↑ 12% vs prior 60d', cls:'up' },
+  { label:'Avg Daily Velocity', value: avgDaily, delta:'Units/day', cls:'' },
+  { label:'Avg Sell-Through', value: avgST + '%', delta: avgST > 75 ? '↑ Strong performance' : '⚠ Below target', cls: avgST > 75 ? 'up' : 'down' },
+  { label:'Stores at Risk', value: atRisk, delta:'Need reorder action', cls: atRisk > 0 ? 'down' : 'up', valcls: atRisk > 2 ? 'danger' : atRisk > 0 ? 'warn' : '' },
+  { label:'Peak Day Units', value: peakDay.units, delta: peakDay.date, cls:'' },
+];
+
+const kpiRow = document.getElementById('kpi-row');
+kpis.forEach(k => {
+  kpiRow.innerHTML += `
+    <div class="kpi">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value ${k.valcls||''}">${k.value}</div>
+      <div class="kpi-delta ${k.cls}">${k.delta}</div>
+    </div>`;
+});
+
+// ─── Trend chart ─────────────────────────────────────────────────────────────
+// 7-day rolling avg
+const rolling = TREND.map((pt, i) => {
+  const slice = TREND.slice(Math.max(0, i-6), i+1);
+  return +(slice.reduce((a,b) => a+b.units, 0) / slice.length).toFixed(1);
+});
+
+const ctx1 = document.getElementById('trendChart').getContext('2d');
+const grad = ctx1.createLinearGradient(0, 0, 0, 220);
+grad.addColorStop(0, 'rgba(59,130,246,.25)');
+grad.addColorStop(1, 'rgba(59,130,246,.01)');
+
+new Chart(ctx1, {
+  type: 'line',
+  data: {
+    labels: TREND.map(p => {
+      const d = new Date(p.date);
+      return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    }),
+    datasets: [
+      {
+        label: 'Daily Units',
+        data: TREND.map(p => p.units),
+        borderColor: '#3b82f6',
+        backgroundColor: grad,
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: true,
+        tension: .3,
+      },
+      {
+        label: '7-Day Avg',
+        data: rolling,
+        borderColor: '#6ee7b7',
+        borderWidth: 2,
+        borderDash: [5,4],
+        pointRadius: 0,
+        fill: false,
+        tension: .4,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode:'index', intersect:false },
+    plugins: { legend:{ labels:{ color:'#9ca3af', font:{size:11}, boxWidth:12 } } },
+    scales: {
+      x: {
+        ticks: { color:'#6b7280', maxTicksLimit:8, font:{size:10} },
+        grid: { color:'rgba(37,42,56,.6)' }
+      },
+      y: {
+        ticks: { color:'#6b7280', font:{size:10} },
+        grid: { color:'rgba(37,42,56,.6)' }
+      }
+    }
+  }
+});
+
+// ─── Donut chart ─────────────────────────────────────────────────────────────
+const regionMap = {};
+STORES.forEach(s => {
+  if (!regionMap[s.region]) regionMap[s.region] = { sold:0, allocated:0 };
+  regionMap[s.region].sold += s.sold;
+  regionMap[s.region].allocated += s.sold + s.inventory;
+});
+const regions = Object.entries(regionMap).map(([r, v]) => ({
+  region: r,
+  st: Math.round(v.sold / v.allocated * 100)
+}));
+
+const ctx2 = document.getElementById('donutChart').getContext('2d');
+new Chart(ctx2, {
+  type: 'doughnut',
+  data: {
+    labels: regions.map(r => `${r.region} (${r.st}%)`),
+    datasets:[{
+      data: regions.map(r => r.st),
+      backgroundColor: ['#3b82f6','#6ee7b7','#f59e0b','#a78bfa'],
+      borderColor: '#13161d',
+      borderWidth: 3,
+      hoverOffset: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    cutout: '68%',
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { color:'#9ca3af', font:{size:11}, padding:12, boxWidth:10 }
+      }
+    }
+  }
+});
+
+// ─── Store table ─────────────────────────────────────────────────────────────
+function stColor(pct) {
+  if (pct >= 80) return '#6ee7b7';
+  if (pct >= 60) return '#f59e0b';
+  return '#ef4444';
+}
+
+const tbody = document.getElementById('store-tbody');
+[...STORES].sort((a,b) => b.sell_through - a.sell_through).forEach(s => {
+  const barColor = stColor(s.sell_through);
+  tbody.innerHTML += `
+    <tr>
+      <td><strong>${s.name}</strong><br><span style="font-size:11px;color:#6b7280;font-family:'DM Mono',monospace">${s.id}</span></td>
+      <td style="color:#9ca3af;font-size:12px">${s.region}</td>
+      <td class="num">${s.sold}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="st-bar-bg"><div class="st-bar-fill" style="width:${s.sell_through}%;background:${barColor}"></div></div>
+          <span class="num" style="color:${barColor}">${s.sell_through}%</span>
+        </div>
+      </td>
+      <td class="num">${s.inventory}</td>
+      <td class="num">${s.velocity}/day</td>
+      <td class="num" style="color:${s.wos < 1.5 ? '#ef4444' : s.wos < 3 ? '#f59e0b' : '#6ee7b7'}">${s.wos}w</td>
+      <td><span class="pill ${s.risk}">${s.risk}</span></td>
+    </tr>`;
+});
+
+// ─── Reorder actions ─────────────────────────────────────────────────────────
+const atRiskStores = STORES.filter(s => s.risk !== 'healthy')
+  .sort((a,b) => a.wos - b.wos);
+
+const actionsRow = document.getElementById('actions-row');
+atRiskStores.forEach(s => {
+  const units = s.risk === 'critical' ? Math.round(s.velocity * 30) : Math.round(s.velocity * 14);
+  actionsRow.innerHTML += `
+    <div class="action-card ${s.risk}">
+      <div class="action-title">${s.name}</div>
+      <div class="action-sub">${s.id} · ${s.region}</div>
+      <div class="action-units ${s.risk}">${units} units</div>
+      <div style="font-size:11px;color:#9ca3af;margin-bottom:8px">Recommended reorder qty</div>
+      <div class="action-note">
+        ${s.risk === 'critical'
+          ? `⚠️ Only ${s.wos}w supply remaining. Reorder <strong>immediately</strong> — suggest express transfer from DC-West.`
+          : `📦 ${s.wos}w supply. Below 3-week threshold — schedule reorder within 7 days.`}
+      </div>
+      <div class="action-tag">WoS: ${s.wos} · ${s.velocity}/day</div>
+    </div>`;
+});
+
+if (atRiskStores.length === 0) {
+  actionsRow.innerHTML = `<div style="color:#6b7280;font-size:13px;padding:12px 0">✓ All stores have healthy stock levels. No reorder actions required.</div>`;
+}
+</script>
+</body>
+</html>
